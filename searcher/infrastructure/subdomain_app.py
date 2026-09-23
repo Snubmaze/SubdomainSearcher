@@ -19,7 +19,7 @@ class DiscoveryResult:
 
 
 def fetch_subdomain_app_data(domain: DomainName, timeout: float) -> object:
-    query_params= parse.urlencode({"domain": domain.value})
+    query_params = parse.urlencode({"domain": domain.value})
     url = f"{_QUERY_URL}?{query_params}"
 
     with request.urlopen(url, timeout=timeout) as response:
@@ -55,8 +55,8 @@ def extract_payload_subdomains(payload: object, parent: DomainName) -> Discovery
             found_names.add(name.value)
 
     return DiscoveryResult(
-        subdomains=[DomainName(value) for value in sorted(found_names)], 
-        count=count, 
+        subdomains=[DomainName(value) for value in sorted(found_names)],
+        count=count,
         total=total,
     )
 

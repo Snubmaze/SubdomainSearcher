@@ -1,5 +1,3 @@
-"""Проверки Subdomain API без живой сети."""
-
 import json
 import unittest
 from unittest.mock import Mock, patch
@@ -58,9 +56,7 @@ class FetchSubdomainAppDataTests(unittest.TestCase):
             json.dumps(payload, ensure_ascii=False).encode("utf-8")
         )
 
-        self.assertEqual(
-            fetch_subdomain_app_data(DomainName("google.com"), 3), payload
-        )
+        self.assertEqual(fetch_subdomain_app_data(DomainName("google.com"), 3), payload)
 
     @patch("searcher.infrastructure.subdomain_app.request.urlopen")
     def test_propagates_invalid_json(self, urlopen_mock: Mock) -> None:

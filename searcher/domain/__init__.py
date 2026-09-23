@@ -1,3 +1,3 @@
-from searcher.domain.models import DomainName as DomainName
+from searcher.domain.models import DomainName, ResolutionResult
 
-__all__ = ["DomainName"]
+__all__ = ["DomainName", "ResolutionResult"]

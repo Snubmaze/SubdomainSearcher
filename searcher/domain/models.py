@@ -22,6 +22,12 @@ class DomainName:
         return self.value
 
 
+@dataclass
+class ResolutionResult:
+    domain: DomainName
+    addresses: list[str]
+
+
 def _normalize_domain_name(value: str) -> str:
     if not value:
         raise ValueError("Empty domain name")
