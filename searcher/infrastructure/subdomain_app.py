@@ -1,21 +1,10 @@
 import json
-from dataclasses import dataclass
 from urllib import parse, request
 
+from searcher.application import DiscoveryResult
 from searcher.domain import DomainName
 
 _QUERY_URL = "https://api.subdomain.app/v1/query"
-
-
-@dataclass
-class DiscoveryResult:
-    subdomains: list[DomainName]
-    count: int
-    total: int
-
-    @property
-    def is_truncated(self) -> bool:
-        return self.total > self.count
 
 
 def fetch_subdomain_app_data(domain: DomainName, timeout: float) -> object:
