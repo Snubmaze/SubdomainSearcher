@@ -61,10 +61,48 @@ class SearchSubdomainsTests(unittest.TestCase):
                 ResolutionResult(DomainName("b.google.com"), []),
             ],
         )
-        self.assertEqual((result.count, result.total), (3, 3))
+        self.assertEqual(result.requested_domain, DomainName("google.com"))
         self.assertFalse(result.is_truncated)
         urlopen_mock.assert_called_once_with(
             "https://api.subdomain.app/v1/query?domain=google.com", timeout=2.5
+        )
+        self.assertEqual(getaddrinfo_mock.call_count, 2)
+
+    @patch("searcher.infrastructure.dns.socket.getaddrinfo")
+    @patch("searcher.infrastructure.subdomain_app.request.urlopen")
+    def test_nested_request_only_resolves_its_branch(
+        self, urlopen_mock: Mock, getaddrinfo_mock: Mock
+    ) -> None:
+        urlopen_mock.return_value = FakeHttpResponse(
+            {
+                "domain": "google.com",
+                "count": 4,
+                "total": 10001,
+                "subdomains": [
+                    "my.google.com",
+                    "sibling.google.com",
+                    "b.my.google.com",
+                    "a.my.google.com",
+                ],
+            }
+        )
+        getaddrinfo_mock.side_effect = [[], [ipv4_record("192.0.2.4")]]
+
+        result = search_subdomains(
+            DomainName("my.google.com"), 3, discover_subdomains, resolve_domain
+        )
+
+        self.assertEqual(
+            result.resolutions,
+            [
+                ResolutionResult(DomainName("a.my.google.com"), []),
+                ResolutionResult(DomainName("b.my.google.com"), ["192.0.2.4"]),
+            ],
+        )
+        self.assertEqual(result.requested_domain, DomainName("my.google.com"))
+        self.assertTrue(result.is_truncated)
+        urlopen_mock.assert_called_once_with(
+            "https://api.subdomain.app/v1/query?domain=my.google.com", timeout=3
         )
         self.assertEqual(getaddrinfo_mock.call_count, 2)
 

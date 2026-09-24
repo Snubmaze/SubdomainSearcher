@@ -18,9 +18,7 @@ class CliTests(unittest.TestCase):
         directory = tempfile.TemporaryDirectory()
         self.addCleanup(directory.cleanup)
         self.output_directory = Path(directory.name) / "output"
-        output_patch = patch(
-            "searcher.main._OUTPUT_DIRECTORY", self.output_directory
-        )
+        output_patch = patch("searcher.main._OUTPUT_DIRECTORY", self.output_directory)
         output_patch.start()
         self.addCleanup(output_patch.stop)
 
@@ -32,7 +30,8 @@ class CliTests(unittest.TestCase):
     @patch("searcher.main.discover_subdomains")
     def test_default_text_keeps_metadata(self, discover, resolve) -> None:
         discover.return_value = DiscoveryResult(
-            [DomainName("b.google.com"), DomainName("a.google.com")], 2, 7
+            [DomainName("b.google.com"), DomainName("a.google.com")],
+            True,
         )
         resolve.side_effect = [
             ResolutionResult(DomainName("b.google.com"), ["192.0.2.2", "2001:db8::2"]),
@@ -43,7 +42,8 @@ class CliTests(unittest.TestCase):
 
         self.assertEqual(
             self.stdout.getvalue(),
-            "count: 2\ntotal: 7\nis_truncated: true\n"
+            "requested_domain: google.com\ndiscovered_subdomains: 2\n"
+            "is_truncated: true\n\n"
             "b.google.com: 192.0.2.2, 2001:db8::2\na.google.com: N/A\n",
         )
         self.assertEqual(self.stderr.getvalue(), "")
@@ -55,7 +55,8 @@ class CliTests(unittest.TestCase):
     @patch("searcher.main.discover_subdomains")
     def test_json_file_keeps_data(self, discover, resolve) -> None:
         discover.return_value = DiscoveryResult(
-            [DomainName("b.google.com"), DomainName("a.google.com")], 2, 3
+            [DomainName("b.google.com"), DomainName("a.google.com")],
+            True,
         )
         resolve.side_effect = [
             ResolutionResult(DomainName("b.google.com"), ["192.0.2.2"]),
@@ -70,8 +71,8 @@ class CliTests(unittest.TestCase):
         self.assertEqual(
             saved,
             {
-                "count": 2,
-                "total": 3,
+                "requested_domain": "google.com",
+                "discovered_subdomains": 2,
                 "is_truncated": True,
                 "resolutions": [
                     {"domain": "b.google.com", "addresses": ["192.0.2.2"]},
@@ -83,13 +84,14 @@ class CliTests(unittest.TestCase):
     @patch("searcher.main.resolve_domain")
     @patch("searcher.main.discover_subdomains")
     def test_text_can_be_saved(self, discover, resolve) -> None:
-        discover.return_value = DiscoveryResult([DomainName("a.google.com")], 1, 1)
+        discover.return_value = DiscoveryResult([DomainName("a.google.com")], False)
         resolve.return_value = ResolutionResult(DomainName("a.google.com"), [])
         path = self.output_directory / "subdomains.txt"
         self.assertEqual(self.run_cli(["google.com", "--save"]), 0)
         self.assertEqual(
             path.read_text(encoding="utf-8"),
-            "count: 1\ntotal: 1\nis_truncated: false\na.google.com: N/A\n",
+            "requested_domain: google.com\ndiscovered_subdomains: 1\n"
+            "is_truncated: false\n\na.google.com: N/A\n",
         )
         self.assertEqual(self.stdout.getvalue(), "")
         self.assertFalse((self.output_directory / "subdomains.json").exists())

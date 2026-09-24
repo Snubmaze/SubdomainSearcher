@@ -68,8 +68,8 @@ class FetchSubdomainAppDataTests(unittest.TestCase):
     def test_normalizes_and_sorts(self) -> None:
         payload = {
             "domain": "google.com",
-            "count": 8,
-            "total": 8,
+            "count": 7,
+            "total": 7,
             "subdomains": [
                 "Z.google.COM",
                 "a.google.com.",
@@ -91,7 +91,53 @@ class FetchSubdomainAppDataTests(unittest.TestCase):
                 DomainName("z.google.com"),
             ],
         )
-        self.assertEqual((result.count, result.total), (8, 8))
+
+    def test_parent_zone_filters_requested_branch(self) -> None:
+        payload = {
+            "domain": "GOOGLE.COM.",
+            "count": 6,
+            "total": 6,
+            "subdomains": [
+                "my.google.com",
+                "a.my.google.com",
+                "b.a.my.google.com",
+                "sibling.google.com",
+                "othermy.google.com",
+                "A.MY.GOOGLE.COM.",
+            ],
+        }
+
+        result = extract_payload_subdomains(payload, DomainName("my.google.com"))
+
+        self.assertEqual(
+            result.subdomains,
+            [DomainName("a.my.google.com"), DomainName("b.a.my.google.com")],
+        )
+        self.assertFalse(result.is_truncated)
+
+    def test_unrelated_domain_is_rejected(self) -> None:
+        payload = {
+            "domain": "notgoogle.com",
+            "count": 0,
+            "total": 0,
+            "subdomains": [],
+        }
+
+        with self.assertRaises(ValueError):
+            extract_payload_subdomains(payload, DomainName("my.google.com"))
+
+    def test_empty_filtered_result_keeps_zone_truncation(self) -> None:
+        payload = {
+            "domain": "google.com",
+            "count": 1,
+            "total": 10001,
+            "subdomains": ["sibling.google.com"],
+        }
+
+        result = extract_payload_subdomains(payload, DomainName("my.google.com"))
+
+        self.assertEqual(result.subdomains, [])
+        self.assertTrue(result.is_truncated)
 
     def test_empty_result(self) -> None:
         payload = {"domain": "google.com", "count": 0, "total": 0, "subdomains": []}

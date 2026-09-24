@@ -7,23 +7,14 @@ from searcher.domain import DomainName, ResolutionResult
 @dataclass
 class DiscoveryResult:
     subdomains: list[DomainName]
-    count: int
-    total: int
-
-    @property
-    def is_truncated(self) -> bool:
-        return self.total > self.count
+    is_truncated: bool
 
 
 @dataclass
 class SearchResult:
     resolutions: list[ResolutionResult]
-    count: int
-    total: int
-
-    @property
-    def is_truncated(self) -> bool:
-        return self.total > self.count
+    requested_domain: DomainName
+    is_truncated: bool
 
 
 def search_subdomains(
@@ -34,4 +25,4 @@ def search_subdomains(
 ) -> SearchResult:
     discovery = discover(domain, timeout)
     resolutions = [resolve(name) for name in discovery.subdomains]
-    return SearchResult(resolutions, discovery.count, discovery.total)
+    return SearchResult(resolutions, domain, discovery.is_truncated)
